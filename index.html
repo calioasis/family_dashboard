@@ -186,12 +186,12 @@
   .agenda-item:last-child { border-bottom: none; }
   .agenda-item.past { opacity: 0.35; }
   .agenda-item.current { background: var(--accent-light); }
-  .agenda-item.current::before {
+  .agenda-item::before {
     content: '';
     position: absolute;
     left: 0; top: 0; bottom: 0;
     width: 3px;
-    background: var(--accent);
+    background: var(--cal-color, var(--border));
     border-radius: 0 2px 2px 0;
   }
 
@@ -251,6 +251,15 @@
   .cdown.imminent .n { color: var(--accent2); }
   .cdown.soon { background: var(--accent-light); border-color: #b2d8c7; }
   .cdown.soon .n { color: var(--accent); }
+
+  .cal-dot {
+    display: inline-block;
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    margin-right: 6px;
+    vertical-align: middle;
+    flex-shrink: 0;
+  }
 
   .upcoming-body { flex: 1; }
   .upcoming-title { font-size: 0.9rem; font-weight: 500; }
@@ -584,13 +593,13 @@ function parseICSDate(val, rawLine) {
 }
 
 // ── FETCH ──
-async function fetchCalendar(url) {
+async function fetchCalendar(url, color) {
   url = url.replace(/^webcal:\/\//i, 'https://');
   try {
     const res = await fetch(CORS + encodeURIComponent(url));
     if (!res.ok) throw new Error('HTTP ' + res.status);
     const text = await res.text();
-    return parseICS(text);
+    return parseICS(text).map(e => ({ ...e, color }));
   } catch(e) {
     console.warn('Calendar fetch failed:', e);
     return null;
@@ -638,7 +647,7 @@ function renderAgenda(events) {
     const timeHTML = t1
       ? `<div class="t">${t1}</div>${t2 ? `<div class="t2">${t2}</div>` : ''}`
       : `<div class="allday">All day</div>`;
-    return `<div class="agenda-item ${cls}">
+    return `<div class="agenda-item ${cls}" style="--cal-color: ${evt.color || 'var(--border)'}">
       <div class="agenda-time-col">${timeHTML}</div>
       <div class="agenda-body">
         <div class="agenda-title">${evt.summary}</div>
@@ -677,7 +686,7 @@ function renderUpcoming(events) {
         <div class="lbl">${lbl}</div>
       </div>
       <div class="upcoming-body">
-        <div class="upcoming-title">${evt.summary}</div>
+        <div class="upcoming-title"><span class="cal-dot" style="background:${evt.color || 'var(--border)'}"></span>${evt.summary}</div>
         <div class="upcoming-date">${dateStr}${t ? ' · ' + t : ''}</div>
       </div>
     </div>`;
@@ -694,14 +703,15 @@ function setStatus(type, msg, right) {
 
 // ── LOAD CALENDARS ──
 async function loadCalendars() {
-  if (!cfg?.calUrl) return;
-  setStatus('loading', 'Fetching calendar…');
-  const evts = await fetchCalendar(cfg.calUrl);
-  if (evts === null) {
-    setStatus('err', 'Could not load calendar — will retry in 15 min');
+  if (!cfg?.calendars?.length) return;
+  setStatus('loading', 'Fetching calendars…');
+  const results = await Promise.all(cfg.calendars.map(cal => fetchCalendar(cal.url, cal.color)));
+  const succeeded = results.filter(Boolean);
+  if (!succeeded.length) {
+    setStatus('err', 'Could not load calendars — will retry in 15 min');
     return;
   }
-  allEvents = evts;
+  allEvents = succeeded.flat();
   renderAgenda(allEvents);
   renderUpcoming(allEvents);
   const now = new Date();
@@ -760,8 +770,14 @@ function init() {
 (function() {
   cfg = {
     name: 'Jeff',
-    calUrl: 'https://p152-caldav.icloud.com/published/2/MjE2NzUyODkyMjE2NzUyOAcNIX4bGhzebsfdvbN7BRg7rrAXT4wH_xrw8hqFOGv2bApw-QmJ260VahRQ0yw9BEvpojEMUTzBlfNVbmbWQaA',
-    city: 'Encinitas, CA'
+    city: 'Encinitas, CA',
+    calendars: [
+      { url: 'https://p152-caldav.icloud.com/published/2/MjE2NzUyODkyMjE2NzUyOAcNIX4bGhzebsfdvbN7BRg7rrAXT4wH_xrw8hqFOGv2bApw-QmJ260VahRQ0yw9BEvpojEMUTzBlfNVbmbWQaA', name: 'Family', color: '#e8a020' },
+      { url: 'https://api.team-manager.gc.com/ics-calendar-documents/user/88fcc122-ae72-4f10-a692-61dd86560c23.ics?teamId=4e527cc1-7ea0-4880-b621-b6e7b2dc441e&token=7c4f22aed0eb8b246f7518f2be4644131488d7e4cf6295b319ae8063c6d4c064', name: 'Little League', color: '#1a73e8' },
+      { url: 'https://api.team-manager.gc.com/ics-calendar-documents/user/88fcc122-ae72-4f10-a692-61dd86560c23.ics?teamId=0011155b-4151-4e05-a93f-f15a3c91f6b0&token=83ecd9ca5b707890defee265748f54a9b57033f5e43688c6405bea20dfdb9d00', name: 'Little League', color: '#e53935' },
+      { url: 'https://ssprodst.blob.core.windows.net/calendars/432/93772.ics', name: 'Calendar', color: '#8e24aa' },
+      { url: 'https://ssprodst.blob.core.windows.net/calendars/432/93777.ics', name: 'Calendar', color: '#00897b' },
+    ]
   };
   document.getElementById('setupWrap').style.display = 'none';
   init();
