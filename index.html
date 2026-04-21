@@ -711,7 +711,10 @@ async function loadCalendars() {
     setStatus('err', 'Could not load calendars — will retry in 15 min');
     return;
   }
-  allEvents = succeeded.flat();
+  const now = new Date();
+  const past = new Date(now); past.setDate(past.getDate() - 1);
+  const future = new Date(now); future.setDate(future.getDate() + 60);
+  allEvents = succeeded.flat().filter(e => e.start && e.start >= past && e.start <= future);
   renderAgenda(allEvents);
   renderUpcoming(allEvents);
   const now = new Date();
