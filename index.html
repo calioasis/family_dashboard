@@ -319,85 +319,6 @@
   .dot.err { background: var(--accent2); }
   @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.15} }
 
-  /* ── SETUP ── */
-  .setup-wrap {
-    position: fixed; inset: 0;
-    background: rgba(247,245,242,0.97);
-    backdrop-filter: blur(4px);
-    display: flex; align-items: center; justify-content: center;
-    z-index: 200;
-  }
-  .setup-box {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    padding: 40px 44px;
-    max-width: 520px;
-    width: 90%;
-    box-shadow: 0 8px 40px rgba(0,0,0,0.07);
-  }
-  .setup-box h1 {
-    font-family: 'Lora', serif;
-    font-size: 1.7rem;
-    font-weight: 400;
-    margin-bottom: 6px;
-  }
-  .setup-box .sub {
-    font-size: 0.83rem;
-    color: var(--muted);
-    line-height: 1.65;
-    margin-bottom: 28px;
-  }
-  .field-label {
-    font-size: 0.7rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    color: var(--muted);
-    margin-bottom: 7px;
-  }
-  .field-group { margin-bottom: 20px; }
-  input[type="text"] {
-    width: 100%;
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 10px 14px;
-    font-family: 'Inter', sans-serif;
-    font-size: 0.83rem;
-    color: var(--text);
-    outline: none;
-    transition: border-color 0.15s;
-  }
-  input[type="text"]::placeholder { color: var(--muted); }
-  input[type="text"]:focus { border-color: var(--accent); }
-  .two-col { display: flex; gap: 10px; }
-  .two-col input:first-child { width: 120px; flex-shrink: 0; }
-  .two-col input:last-child { flex: 1; }
-  .btn-row { display: flex; gap: 10px; margin-top: 26px; }
-  .btn {
-    padding: 10px 22px;
-    border-radius: 8px;
-    font-family: 'Inter', sans-serif;
-    font-size: 0.85rem;
-    font-weight: 500;
-    cursor: pointer;
-    border: none;
-    transition: opacity 0.15s;
-  }
-  .btn:hover { opacity: 0.8; }
-  .btn-primary { background: var(--accent); color: white; }
-  .btn-ghost { background: transparent; color: var(--muted); border: 1px solid var(--border); }
-  .info-box {
-    margin-top: 20px;
-    background: var(--surface2);
-    border-radius: 8px;
-    padding: 12px 16px;
-    font-size: 0.75rem;
-    color: var(--muted);
-    line-height: 1.7;
-  }
-  .info-box strong { color: var(--ink); }
 
   /* scrollbars */
   .agenda-scroll::-webkit-scrollbar,
@@ -412,38 +333,6 @@
 </style>
 </head>
 <body>
-
-<!-- SETUP -->
-<div class="setup-wrap" id="setupWrap">
-  <div class="setup-box">
-    <h1>Dashboard Setup</h1>
-    <p class="sub">Connect your Apple Calendar using an iCloud sharing link, then enter your city for weather.</p>
-
-    <div class="field-group">
-      <div class="field-label">Your name</div>
-      <input type="text" id="calName" placeholder="Jeff">
-    </div>
-
-    <div class="field-group">
-      <div class="field-label">iCloud Calendar URL (.ics)</div>
-      <input type="text" id="calUrl" placeholder="https://p00-caldav.icloud.com/published/2/...">
-    </div>
-
-    <div class="field-group">
-      <div class="field-label">City (for weather)</div>
-      <input type="text" id="weatherCity" placeholder="Encinitas, CA">
-    </div>
-
-    <div class="btn-row">
-      <button class="btn btn-primary" onclick="saveSetup()">Launch Dashboard</button>
-      <button class="btn btn-ghost" onclick="loadDemo()">Try Demo</button>
-    </div>
-
-    <div class="info-box">
-      <strong>Getting your iCloud .ics URL:</strong> On your Mac, open Calendar → right-click a calendar → Share Calendar → enable Public Calendar → copy the link. Change <strong>webcal://</strong> to <strong>https://</strong> before pasting here.
-    </div>
-  </div>
-</div>
 
 <!-- DASHBOARD -->
 <div class="topbar">
@@ -504,9 +393,7 @@
 </div>
 
 <script>
-const STORAGE_KEY = 'dash_cfg_v1';
 const CORS = 'https://calendar-proxy.jeffrey-sherin.workers.dev/?url=';
-const CAL_COLOR = 'var(--accent)';
 
 let cfg = null;
 let allEvents = [];
@@ -756,48 +643,9 @@ async function loadCalendars() {
   allEvents = succeeded.flat().filter(e => e.start && e.start >= past && e.start <= future);
   renderAgenda(allEvents);
   renderUpcoming(allEvents);
-  const now = new Date();
   setStatus('', `Live · ${allEvents.length} events`, `Updated ${now.toLocaleTimeString([], {hour:'numeric',minute:'2-digit'})}`);
 }
 
-// ── SETUP ──
-function saveSetup() {
-  const name = document.getElementById('calName').value.trim() || 'My Calendar';
-  const calUrl = document.getElementById('calUrl').value.trim();
-  const city = document.getElementById('weatherCity').value.trim();
-  if (!calUrl) { alert('Please enter your iCloud calendar URL.'); return; }
-  cfg = { name, calUrl, city };
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(cfg));
-  document.getElementById('setupWrap').style.display = 'none';
-  init();
-}
-
-function loadDemo() {
-  cfg = { name: 'Jeff', calUrl: '', city: 'Encinitas, CA' };
-  document.getElementById('setupWrap').style.display = 'none';
-
-  const now = new Date();
-  function at(h, m=0) { const d = new Date(now); d.setHours(h,m,0,0); return d; }
-  function in_(days, h=9, m=0) { const d = new Date(now); d.setDate(d.getDate()+days); d.setHours(h,m,0,0); return d; }
-
-  allEvents = [
-    { summary: 'Morning standup', start: at(9), end: at(9,30) },
-    { summary: 'Dentist', start: at(14), end: at(15), location: 'Del Mar Dental Arts' },
-    { summary: 'Dinner reservations', start: at(19), end: at(21), location: 'Truluck\'s' },
-    { summary: 'Flight to SF', start: in_(3, 7, 30), location: 'SAN Airport' },
-    { summary: 'Spring break starts', start: in_(6, 0), end: null },
-    { summary: 'Beach camping', start: in_(10, 9), location: 'San Elijo State Beach' },
-    { summary: 'Dad\'s birthday 🎂', start: in_(14, 0) },
-    { summary: 'Pool service', start: in_(2, 10) },
-    { summary: 'Car registration due', start: in_(18, 0) },
-    { summary: 'Snap all-hands', start: in_(5, 10), location: 'San Diego Office' },
-  ];
-
-  renderAgenda(allEvents);
-  renderUpcoming(allEvents);
-  setStatus('', 'Demo mode · Enter your calendar URL in Setup', '');
-  if (cfg.city) fetchWeather(cfg.city);
-}
 
 function init() {
   if (cfg.city) fetchWeather(cfg.city);
@@ -821,7 +669,6 @@ function init() {
       { url: 'https://ssprodst.blob.core.windows.net/calendars/432/93777.ics', name: 'Calendar', color: '#00897b' },
     ]
   };
-  document.getElementById('setupWrap').style.display = 'none';
   init();
 })();
 </script>
