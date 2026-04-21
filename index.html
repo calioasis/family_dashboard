@@ -677,13 +677,12 @@ function renderUpcoming(events) {
     const msPerDay = 86400000;
     const days = Math.ceil((evt.start - now) / msPerDay);
     const cls = days <= 1 ? 'imminent' : days <= 5 ? 'soon' : '';
-    const lbl = days === 1 ? 'day' : 'days';
     const dateStr = `${DAY_SHORT[evt.start.getDay()]}, ${MON_SHORT[evt.start.getMonth()]} ${evt.start.getDate()}`;
     const t = fmtTime(evt.start);
     return `<div class="upcoming-item">
       <div class="cdown ${cls}">
-        <div class="n">${days}</div>
-        <div class="lbl">${lbl}</div>
+        <div class="n">${evt.start.getDate()}</div>
+        <div class="lbl">${DAY_SHORT[evt.start.getDay()]}</div>
       </div>
       <div class="upcoming-body">
         <div class="upcoming-title"><span class="cal-dot" style="background:${evt.color || 'var(--border)'}"></span>${evt.summary}</div>
