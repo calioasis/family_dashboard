@@ -352,7 +352,7 @@
 <div class="main">
   <div class="card">
     <div class="card-head">
-      <h2>Today</h2>
+      <h2 id="agendaHeader">Today</h2>
       <span class="card-badge" id="agendaBadge">—</span>
     </div>
     <div class="agenda-scroll" id="agendaList">
@@ -397,6 +397,7 @@ const CORS = 'https://calendar-proxy.jeffrey-sherin.workers.dev/?url=';
 
 let cfg = null;
 let allEvents = [];
+let showingTomorrow = false;
 
 // ── PAGE RELOAD every 60 minutes ──
 setTimeout(() => location.reload(), 60 * 60 * 1000);
@@ -557,17 +558,34 @@ function renderAgenda(events) {
     return a.start - b.start;
   });
 
-  document.getElementById('agendaBadge').textContent = `${today.length} event${today.length!==1?'s':''}`;
+  const allPast = today.length === 0 || today.every(e => !e.start.allDay && e.end && e.end < now);
+  const tomorrow = new Date(now); tomorrow.setDate(tomorrow.getDate() + 1);
+
+  let displayEvents = today;
+  if (allPast) {
+    showingTomorrow = true;
+    displayEvents = events.filter(e => e.start && sameDay(e.start, tomorrow));
+    displayEvents.sort((a,b) => {
+      if (a.start.allDay && !b.start.allDay) return -1;
+      if (!a.start.allDay && b.start.allDay) return 1;
+      return a.start - b.start;
+    });
+  } else {
+    showingTomorrow = false;
+  }
+
+  document.getElementById('agendaHeader').textContent = showingTomorrow ? 'Tomorrow' : 'Today';
+  document.getElementById('agendaBadge').textContent = `${displayEvents.length} event${displayEvents.length!==1?'s':''}`;
   const el = document.getElementById('agendaList');
 
-  if (!today.length) {
-    el.innerHTML = '<div class="empty"><span class="empty-icon">🎉</span>Nothing scheduled today</div>';
+  if (!displayEvents.length) {
+    el.innerHTML = `<div class="empty"><span class="empty-icon">${showingTomorrow ? '😴' : '🎉'}</span>Nothing scheduled ${showingTomorrow ? 'tomorrow' : 'today'}</div>`;
     return;
   }
 
-  el.innerHTML = today.map(evt => {
-    const past = !evt.start.allDay && evt.end && evt.end < now;
-    const current = !evt.start.allDay && evt.start <= now && (!evt.end || evt.end >= now);
+  el.innerHTML = displayEvents.map(evt => {
+    const past = !showingTomorrow && !evt.start.allDay && evt.end && evt.end < now;
+    const current = !showingTomorrow && !evt.start.allDay && evt.start <= now && (!evt.end || evt.end >= now);
     const cls = past ? 'past' : current ? 'current' : '';
     const t1 = fmtTime(evt.start);
     const t2 = fmtTime(evt.end);
@@ -589,8 +607,13 @@ function renderUpcoming(events) {
   const now = new Date();
   const cutoff = new Date(now); cutoff.setDate(cutoff.getDate() + 30);
 
+  const tomorrow = new Date(now); tomorrow.setDate(tomorrow.getDate() + 1);
   const upcoming = events
-    .filter(e => e.start && e.start > now && !sameDay(e.start, now) && e.start <= cutoff)
+    .filter(e => {
+      if (!e.start || e.start <= now || sameDay(e.start, now) || e.start > cutoff) return false;
+      if (showingTomorrow && sameDay(e.start, tomorrow)) return false;
+      return true;
+    })
     .sort((a,b) => a.start - b.start)
     .slice(0, 14);
 
