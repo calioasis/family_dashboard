@@ -650,15 +650,8 @@ function renderUpcoming(events) {
     const days = Math.ceil((evt.start - now) / msPerDay);
     const cls = days <= 1 ? 'imminent' : days <= 5 ? 'soon' : '';
     const dateStr = `${DAY_SHORT[evt.start.getDay()]}, ${MON_SHORT[evt.start.getMonth()]} ${evt.start.getDate()}`;
-    const fmtShort = dt => {
-      if (!dt || dt.allDay) return null;
-      let h = dt.getHours(), m = dt.getMinutes();
-      const ap = h >= 12 ? 'PM' : 'AM';
-      h = h % 12 || 12;
-      return `${h}:${String(m).padStart(2,'0')}${ap}`;
-    };
-    const t1 = fmtShort(evt.start);
-    const t2 = fmtShort(evt.end);
+    const t1 = fmtTime(evt.start);
+    const t2 = fmtTime(evt.end);
     const timeStr = t1 ? (t2 ? `${t1}–${t2}` : t1) : '';
     return `<div class="upcoming-item">
       <div class="cdown ${cls}">
