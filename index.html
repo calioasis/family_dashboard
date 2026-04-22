@@ -526,6 +526,10 @@ function parseICS(text) {
     else if (key === 'DTEND') e.end = parseICSDate(val, line);
     else if (key === 'LOCATION') e.location = val.replace(/\\n/g,' ').replace(/\\,/g,',');
     else if (key === 'RRULE') e.rrule = val;
+    else if (key === 'EXDATE') {
+      const dates = val.split(',').map(d => parseICSDate(d.trim(), d.trim()));
+      e.exdates = [...(e.exdates || []), ...dates];
+    }
   }
   return evts;
 }
@@ -585,7 +589,8 @@ function expandRecurring(evt, winStart, winEnd) {
       match = cursor.getMonth() === evt.start.getMonth() && cursor.getDate() === evt.start.getDate();
     }
 
-    if (match) {
+    const excluded = match && evt.exdates?.some(ex => sameDay(ex, cursor) && (ex.allDay || ex.getHours() === cursor.getHours()));
+    if (match && !excluded) {
       occCount++;
       if (cursor >= winStart) {
         const occ = { ...evt, start: new Date(cursor) };
