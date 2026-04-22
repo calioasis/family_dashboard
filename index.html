@@ -54,12 +54,26 @@
     text-transform: uppercase;
   }
 
+  .family-center {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+  }
   .family-name {
     font-family: 'Lora', serif;
     font-size: 1.5rem;
     font-weight: 400;
     font-style: italic;
     color: var(--ink);
+    text-align: center;
+    letter-spacing: 0.01em;
+  }
+  .family-subtitle {
+    font-family: 'Lora', serif;
+    font-size: 0.85rem;
+    font-weight: 400;
+    color: var(--accent2);
     text-align: center;
     letter-spacing: 0.01em;
   }
@@ -340,7 +354,10 @@
     <div class="weekday" id="weekday">—</div>
     <div class="full-date" id="fullDate">—</div>
   </div>
-  <div class="family-name">Sherin Family</div>
+  <div class="family-center">
+    <div class="family-name">Sherin Family</div>
+    <div class="family-subtitle" id="familySubtitle"></div>
+  </div>
   <div class="time-block">
     <div class="time" id="clockTime">—</div>
     <span class="ampm" id="clockAmpm">—</span>
@@ -394,6 +411,7 @@
 
 <script>
 const CORS = 'https://calendar-proxy.jeffrey-sherin.workers.dev/?url=';
+const SUBTITLE = 'Gaga Shell and Papa Ron here Thursday!!';
 
 let cfg = null;
 let allEvents = [];
@@ -401,6 +419,9 @@ let showingTomorrow = false;
 
 // ── PAGE RELOAD every 60 minutes ──
 setTimeout(() => location.reload(), 60 * 60 * 1000);
+
+// ── SUBTITLE ──
+if (SUBTITLE) document.getElementById('familySubtitle').textContent = SUBTITLE;
 
 // ── CLOCK ──
 function tick() {
