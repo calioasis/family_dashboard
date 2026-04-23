@@ -34,10 +34,13 @@
   /* ── TOP BAR ── */
   .topbar {
     display: grid;
-    grid-template-columns: 0.6fr 1.8fr 0.6fr;
+    grid-template-columns: 1fr 1fr 1fr;
     align-items: center;
     padding: 20px 48px 0;
     flex-shrink: 0;
+  }
+  .topbar.marquee-mode {
+    grid-template-columns: 220px 1fr 220px;
   }
 
   .date-block .weekday {
@@ -498,6 +501,7 @@ if (MARQUEE && SUBTITLE) {
   document.getElementById('familyCenter').style.display = 'none';
   document.getElementById('marqueeWrap').style.display = 'flex';
   document.getElementById('marqueeText').textContent = SUBTITLE;
+  document.querySelector('.topbar').classList.add('marquee-mode');
 } else if (SUBTITLE) {
   document.getElementById('familySubtitle').textContent = SUBTITLE;
 }
