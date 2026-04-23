@@ -89,6 +89,11 @@
     display: flex;
     align-items: center;
   }
+  .marquee-inner {
+    display: flex;
+    white-space: nowrap;
+    animation: scroll-marquee 22s linear infinite;
+  }
   .marquee-text {
     display: inline-block;
     white-space: nowrap;
@@ -97,11 +102,11 @@
     font-weight: 400;
     font-style: italic;
     color: #d4a84b;
-    animation: scroll-marquee 18s linear infinite;
+    padding-right: 12vw;
   }
   @keyframes scroll-marquee {
-    from { transform: translateX(100vw); }
-    to   { transform: translateX(-100%); }
+    from { transform: translateX(0); }
+    to   { transform: translateX(-50%); }
   }
 
   .time-block {
@@ -416,7 +421,10 @@
     <div class="family-subtitle" id="familySubtitle"></div>
   </div>
   <div class="marquee-wrap" id="marqueeWrap" style="display:none">
-    <div class="marquee-text" id="marqueeText"></div>
+    <div class="marquee-inner">
+      <span class="marquee-text" id="marqueeText"></span>
+      <span class="marquee-text" id="marqueeText2"></span>
+    </div>
   </div>
   <div class="time-block">
     <div class="time" id="clockTime">—</div>
@@ -501,6 +509,7 @@ if (MARQUEE && SUBTITLE) {
   document.getElementById('familyCenter').style.display = 'none';
   document.getElementById('marqueeWrap').style.display = 'flex';
   document.getElementById('marqueeText').textContent = SUBTITLE;
+  document.getElementById('marqueeText2').textContent = SUBTITLE;
   document.querySelector('.topbar').classList.add('marquee-mode');
 } else if (SUBTITLE) {
   document.getElementById('familySubtitle').textContent = SUBTITLE;
