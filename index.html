@@ -34,7 +34,7 @@
   /* ── TOP BAR ── */
   .topbar {
     display: grid;
-    grid-template-columns: 1fr auto 1fr;
+    grid-template-columns: 1fr 1fr 1fr;
     align-items: center;
     padding: 20px 48px 0;
     flex-shrink: 0;
@@ -78,6 +78,28 @@
     letter-spacing: 0.01em;
   }
   .family-subtitle:empty { display: none; }
+
+  /* ── MARQUEE ── */
+  .marquee-wrap {
+    overflow: hidden;
+    width: 100%;
+    display: flex;
+    align-items: center;
+  }
+  .marquee-text {
+    display: inline-block;
+    white-space: nowrap;
+    font-family: 'Lora', serif;
+    font-size: 1.7rem;
+    font-weight: 400;
+    font-style: italic;
+    color: #d4a84b;
+    animation: scroll-marquee 18s linear infinite;
+  }
+  @keyframes scroll-marquee {
+    from { transform: translateX(120%); }
+    to   { transform: translateX(-120%); }
+  }
 
   .time-block {
     display: flex;
@@ -386,9 +408,12 @@
     <div class="weekday" id="weekday">—</div>
     <div class="full-date" id="fullDate">—</div>
   </div>
-  <div class="family-center">
+  <div class="family-center" id="familyCenter">
     <div class="family-name">Sherin Family</div>
     <div class="family-subtitle" id="familySubtitle"></div>
+  </div>
+  <div class="marquee-wrap" id="marqueeWrap" style="display:none">
+    <div class="marquee-text" id="marqueeText"></div>
   </div>
   <div class="time-block">
     <div class="time" id="clockTime">—</div>
@@ -447,6 +472,7 @@
 <script>
 const CORS = 'https://calendar-proxy.jeffrey-sherin.workers.dev/?url=';
 const SUBTITLE = 'Welcome Gaga Shell and Papa Ron!';
+const MARQUEE = false; // set to true to replace title/subtitle with scrolling marquee
 
 let cfg = null;
 let allEvents = [];
@@ -467,8 +493,14 @@ function toggleTheme() {
 }
 applyTheme(localStorage.getItem('dash_theme') || 'dark');
 
-// ── SUBTITLE ──
-if (SUBTITLE) document.getElementById('familySubtitle').textContent = SUBTITLE;
+// ── SUBTITLE / MARQUEE ──
+if (MARQUEE && SUBTITLE) {
+  document.getElementById('familyCenter').style.display = 'none';
+  document.getElementById('marqueeWrap').style.display = 'flex';
+  document.getElementById('marqueeText').textContent = SUBTITLE;
+} else if (SUBTITLE) {
+  document.getElementById('familySubtitle').textContent = SUBTITLE;
+}
 
 // ── CLOCK ──
 function tick() {
