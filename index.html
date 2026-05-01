@@ -108,32 +108,12 @@
     to   { transform: translateX(-50%); }
   }
 
-  .time-block {
+  /* ── WEATHER TOPBAR ── */
+  .weather-topbar {
     display: flex;
-    align-items: baseline;
-    justify-content: flex-end;
-    gap: 6px;
-  }
-  .time-block .time {
-    font-family: 'Lora', serif;
-    font-size: 2rem;
-    font-weight: 400;
-    letter-spacing: -1px;
-    line-height: 1;
-    color: var(--ink);
-  }
-  .time-block .ampm {
-    font-size: 0.75rem;
-    color: var(--muted);
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-  }
-
-  /* ── WEATHER CARD ── */
-  .weather-card-head {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
+    flex-direction: column;
+    align-items: flex-end;
+    text-align: right;
   }
   .weather-current {
     display: flex;
@@ -155,26 +135,87 @@
     letter-spacing: 0.06em;
     margin-top: 3px;
   }
-  .hourly-scroll {
+  .wc-precip {
+    font-size: 0.72rem;
+    color: #4a90c4;
+    margin-top: 4px;
+    letter-spacing: 0.02em;
+  }
+
+  /* ── COL RIGHT ── */
+  .col-right {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  /* ── SCORES ── */
+  .scores-card { flex: 1; min-height: 0; }
+  /* ── STANDINGS ── */
+  .standings-card { flex: 1; min-height: 0; }
+  .standings-scroll {
+    flex: 1;
+    overflow-y: auto;
+    padding: 4px 0;
+    min-height: 0;
+  }
+  .standing-row {
+    display: flex;
+    align-items: center;
+    padding: 7px 24px;
+    border-bottom: 1px solid var(--border);
+    gap: 8px;
+  }
+  .standing-row:last-child { border-bottom: none; }
+  .standing-rank { font-size: 0.7rem; color: var(--muted); width: 16px; flex-shrink: 0; }
+  .standing-team {
+    flex: 1;
+    font-size: 0.83rem;
+    font-weight: 500;
+    color: var(--ink);
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .standing-wl { font-size: 0.72rem; color: var(--muted); width: 32px; text-align: right; flex-shrink: 0; }
+  .standing-pct {
+    font-family: 'Lora', serif;
+    font-size: 0.88rem;
+    color: var(--ink);
+    width: 36px;
+    text-align: right;
+    flex-shrink: 0;
+  }
+  .scores-scroll {
     flex: 1;
     overflow-y: auto;
     padding: 8px 0;
     min-height: 0;
   }
-  .hour-item {
-    display: grid;
-    grid-template-columns: 44px 28px 1fr auto;
-    align-items: center;
-    padding: 9px 24px;
+  .score-item {
+    padding: 10px 24px;
     border-bottom: 1px solid var(--border);
-    gap: 8px;
   }
-  .hour-item:last-child { border-bottom: none; }
-  .hour-time { font-size: 0.8rem; color: var(--muted); }
-  .hour-time.now { color: var(--ink); font-weight: 500; }
-  .hour-icon { font-size: 1rem; text-align: center; }
-  .hour-temp { font-size: 0.88rem; font-weight: 500; color: var(--ink); }
-  .hour-precip { font-size: 0.72rem; color: #4a90c4; text-align: right; }
+  .score-item:last-child { border-bottom: none; }
+  .score-matchup {
+    font-size: 0.82rem;
+    color: var(--ink);
+    margin-bottom: 3px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .score-vs { color: var(--muted); margin: 0 5px; }
+  .score-line { display: flex; align-items: baseline; gap: 8px; }
+  .score-result {
+    font-family: 'Lora', serif;
+    font-size: 1.05rem;
+    color: var(--ink);
+  }
+  .score-when { font-size: 0.7rem; color: var(--muted); }
 
   /* ── RULE ── */
   .rule {
@@ -187,7 +228,7 @@
   /* ── MAIN ── */
   .main {
     display: grid;
-    grid-template-columns: 1.1fr 1fr 0.75fr;
+    grid-template-columns: 1.1fr 1fr 0.9fr;
     gap: 20px;
     padding: 0 48px 0;
     flex: 1;
@@ -398,13 +439,16 @@
   /* scrollbars */
   .agenda-scroll::-webkit-scrollbar,
   .upcoming-scroll::-webkit-scrollbar,
-  .hourly-scroll::-webkit-scrollbar { width: 3px; }
+  .scores-scroll::-webkit-scrollbar,
+  .standings-scroll::-webkit-scrollbar { width: 3px; }
   .agenda-scroll::-webkit-scrollbar-track,
   .upcoming-scroll::-webkit-scrollbar-track,
-  .hourly-scroll::-webkit-scrollbar-track { background: transparent; }
+  .scores-scroll::-webkit-scrollbar-track,
+  .standings-scroll::-webkit-scrollbar-track { background: transparent; }
   .agenda-scroll::-webkit-scrollbar-thumb,
   .upcoming-scroll::-webkit-scrollbar-thumb,
-  .hourly-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  .scores-scroll::-webkit-scrollbar-thumb,
+  .standings-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
 </style>
 </head>
 <body>
@@ -425,9 +469,14 @@
       <span class="marquee-text" id="marqueeText2"></span>
     </div>
   </div>
-  <div class="time-block">
-    <div class="time" id="clockTime">—</div>
-    <span class="ampm" id="clockAmpm">—</span>
+  <div class="weather-topbar">
+    <div class="weather-current">
+      <span class="wc-icon" id="wIcon"></span>
+      <span class="wc-temp" id="wTemp"></span>
+    </div>
+    <div class="wc-desc" id="wDesc"></div>
+    <span class="card-badge" id="wHiLow"></span>
+    <span class="wc-precip" id="wPrecip"></span>
   </div>
 </div>
 
@@ -454,19 +503,25 @@
     </div>
   </div>
 
-  <div class="card">
-    <div class="card-head weather-card-head">
-      <div>
-        <div class="weather-current">
-          <span class="wc-icon" id="wIcon">—</span>
-          <span class="wc-temp" id="wTemp">—</span>
-        </div>
-        <div class="wc-desc" id="wDesc">Loading weather…</div>
+  <div class="col-right">
+    <div class="card scores-card">
+      <div class="card-head">
+        <h2>Scores</h2>
+        <span class="card-badge" id="scoresBadge">—</span>
       </div>
-      <span class="card-badge" id="wHiLow"></span>
+      <div class="scores-scroll" id="scoresList">
+        <div class="empty"><span class="empty-icon">⚾</span>Loading…</div>
+      </div>
     </div>
-    <div class="hourly-scroll" id="wHourly">
-      <div class="empty">Loading…</div>
+
+    <div class="card standings-card">
+      <div class="card-head">
+        <h2>Standings</h2>
+        <span class="card-badge" id="standingsBadge">—</span>
+      </div>
+      <div class="standings-scroll" id="standingsList">
+        <div class="empty">Loading…</div>
+      </div>
     </div>
   </div>
 </div>
@@ -520,20 +575,15 @@ if (MARQUEE && SUBTITLE) {
   document.getElementById('familySubtitle').textContent = SUBTITLE;
 }
 
-// ── CLOCK ──
+// ── DATE ──
 function tick() {
   const now = new Date();
   const DAYS = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
   const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
   document.getElementById('weekday').textContent = DAYS[now.getDay()];
   document.getElementById('fullDate').textContent = `${MONTHS[now.getMonth()]} ${now.getDate()}, ${now.getFullYear()}`;
-  let h = now.getHours(), m = now.getMinutes();
-  const ap = h >= 12 ? 'PM' : 'AM';
-  h = h % 12 || 12;
-  document.getElementById('clockTime').textContent = `${h}:${String(m).padStart(2,'0')}`;
-  document.getElementById('clockAmpm').textContent = ap;
 }
-setInterval(tick, 1000);
+setInterval(tick, 60000);
 tick();
 
 // ── WEATHER ──
@@ -544,37 +594,26 @@ async function fetchWeather(city) {
     const gj = await g.json();
     if (!gj.results?.length) return;
     const { latitude: lat, longitude: lon } = gj.results[0];
-    const w = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weathercode,windspeed_10m&hourly=temperature_2m,weathercode,precipitation_probability&daily=temperature_2m_max,temperature_2m_min&temperature_unit=fahrenheit&wind_speed_unit=mph&forecast_days=2&timezone=auto`);
+    const w = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weathercode&hourly=precipitation_probability&daily=temperature_2m_max,temperature_2m_min&temperature_unit=fahrenheit&forecast_days=1&timezone=auto`);
     const wj = await w.json();
     const cur = wj.current, day = wj.daily, hourly = wj.hourly;
 
     document.getElementById('wIcon').textContent = wmoIcon(cur.weathercode);
     document.getElementById('wTemp').textContent = `${Math.round(cur.temperature_2m)}°`;
     document.getElementById('wDesc').textContent = wmoDesc(cur.weathercode);
-    document.getElementById('wHiLow').textContent = `H: ${Math.round(day.temperature_2m_max[0])}°  L: ${Math.round(day.temperature_2m_min[0])}°`;
+    document.getElementById('wHiLow').textContent = `H: ${Math.round(day.temperature_2m_max[0])}°  ·  L: ${Math.round(day.temperature_2m_min[0])}°`;
 
     const now = new Date();
-    const cutoff = new Date(now.getTime() + 12 * 3600000);
-    const hours = hourly.time
-      .map((t, i) => ({ d: new Date(t), i }))
-      .filter(({ d }) => d >= now && d <= cutoff);
-
-    document.getElementById('wHourly').innerHTML = hours.map(({ d, i }) => {
-      let h = d.getHours();
-      const ap = h >= 12 ? 'pm' : 'am';
-      h = h % 12 || 12;
-      const isNow = d.getHours() === now.getHours();
-      const timeStr = isNow ? 'Now' : `${h} ${ap}`;
-      const precip = hourly.precipitation_probability[i];
-      return `<div class="hour-item">
-        <div class="hour-time${isNow ? ' now' : ''}">${timeStr}</div>
-        <div class="hour-icon">${wmoIcon(hourly.weathercode[i])}</div>
-        <div class="hour-temp">${Math.round(hourly.temperature_2m[i])}°</div>
-        <div class="hour-precip">${precip > 10 ? precip + '%' : ''}</div>
-      </div>`;
-    }).join('');
+    const endOfDay = new Date(now); endOfDay.setHours(23, 59, 59, 999);
+    const maxPrecip = Math.max(0, ...hourly.time
+      .map((t, i) => ({ d: new Date(t), p: hourly.precipitation_probability[i] }))
+      .filter(({ d }) => d >= now && d <= endOfDay)
+      .map(({ p }) => p));
+    const precipEl = document.getElementById('wPrecip');
+    if (precipEl) precipEl.textContent = maxPrecip >= 20 ? `🌧 ${maxPrecip}% rain` : '';
   } catch(e) {
-    document.getElementById('wDesc').textContent = 'Weather unavailable';
+    const el = document.getElementById('wDesc');
+    if (el) el.textContent = 'Weather unavailable';
   }
 }
 
@@ -601,6 +640,128 @@ function wmoDesc(c) {
   if (c<=84) return 'Rain Showers';
   if (c<=99) return 'Thunderstorms';
   return 'Unknown';
+}
+
+// ── LITTLE LEAGUE SCORES ──
+async function fetchScores() {
+  const el = document.getElementById('scoresList');
+  const badge = document.getElementById('scoresBadge');
+  try {
+    const res = await fetch(CORS + encodeURIComponent('https://www.ellbaseball.org/Default.aspx?tabid=1343464'));
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const html = await res.text();
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+
+    // Find scores table: tbody where second cell (index 1) contains MM/DD/YYYY dates
+    let rows = [];
+    for (const tbody of doc.querySelectorAll('table tbody')) {
+      const trs = Array.from(tbody.querySelectorAll('tr'));
+      if (trs.some(r => {
+        const cells = r.querySelectorAll('td');
+        return cells.length >= 2 && /^\d{1,2}\/\d{1,2}\/\d{4}$/.test(cells[1]?.textContent?.trim());
+      })) { rows = trs; break; }
+    }
+
+    const todayMidnight = new Date(); todayMidnight.setHours(0, 0, 0, 0);
+    const targets = new Set();
+    for (let d = 1; d <= 2; d++) {
+      const dt = new Date(todayMidnight); dt.setDate(dt.getDate() - d);
+      targets.add(`${String(dt.getMonth()+1).padStart(2,'0')}/${String(dt.getDate()).padStart(2,'0')}/${dt.getFullYear()}`);
+    }
+
+    const games = [];
+    for (const row of rows) {
+      const cells = Array.from(row.querySelectorAll('td'));
+      if (cells.length < 7) continue;
+      const date = cells[1]?.textContent?.trim();
+      if (!targets.has(date)) continue;
+      const away = cells[4]?.textContent?.trim();
+      const home = cells[5]?.textContent?.trim();
+      const score = cells[6]?.textContent?.trim();
+      if (away && home && score && /\d/.test(score)) games.push({ date, away, home, score });
+    }
+
+    if (!games.length) {
+      el.innerHTML = '<div class="empty"><span class="empty-icon">⚾</span>No games in the last 2 days</div>';
+      if (badge) badge.textContent = 'No recent games';
+      return;
+    }
+
+    if (badge) badge.textContent = `${games.length} game${games.length !== 1 ? 's' : ''}`;
+    el.innerHTML = games.map(g => {
+      const [mm, dd, yyyy] = g.date.split('/');
+      const diffDays = Math.round((todayMidnight - new Date(+yyyy, +mm - 1, +dd)) / 86400000);
+      const when = diffDays === 1 ? 'Yesterday' : `${diffDays}d ago`;
+      return `<div class="score-item">
+        <div class="score-matchup"><span class="score-team">${g.away}</span><span class="score-vs">vs</span><span class="score-team">${g.home}</span></div>
+        <div class="score-line"><span class="score-result">${g.score}</span><span class="score-when">${when}</span></div>
+      </div>`;
+    }).join('');
+  } catch(e) {
+    el.innerHTML = '<div class="empty"><span class="empty-icon">⚾</span>Scores unavailable</div>';
+    if (badge) badge.textContent = '—';
+    console.warn('Scores fetch failed:', e);
+  }
+}
+
+// ── STANDINGS ──
+async function fetchStandings() {
+  const el = document.getElementById('standingsList');
+  const badge = document.getElementById('standingsBadge');
+  try {
+    const res = await fetch(CORS + encodeURIComponent('https://www.ellbaseball.org/Default.aspx?tabid=1343465'));
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const html = await res.text();
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+
+    // Find standings table: look for headers containing PCT/W/L, or data rows with 0.XXX PCT values
+    let teams = [];
+    for (const table of doc.querySelectorAll('table')) {
+      const headers = Array.from(table.querySelectorAll('th')).map(th => th.textContent.trim().toUpperCase());
+      let pctCol = headers.findIndex(h => h === 'PCT' || h === 'WIN%' || h === 'WPCT');
+      const rows = Array.from(table.querySelectorAll('tbody tr'));
+      const candidates = [];
+
+      for (const row of rows) {
+        const cells = Array.from(row.querySelectorAll('td'));
+        if (cells.length < 3) continue;
+        if (pctCol < 0) {
+          pctCol = cells.findIndex(c => /^[01]\.\d{3}$/.test(c.textContent.trim()));
+        }
+        if (pctCol < 0) continue;
+        const pct = parseFloat(cells[pctCol]?.textContent?.trim());
+        if (isNaN(pct)) continue;
+        const team = cells[0]?.textContent?.trim();
+        const w = pctCol >= 2 ? parseInt(cells[pctCol - 2]?.textContent?.trim()) : NaN;
+        const l = pctCol >= 1 ? parseInt(cells[pctCol - 1]?.textContent?.trim()) : NaN;
+        if (team) candidates.push({ team, w: isNaN(w) ? null : w, l: isNaN(l) ? null : l, pct });
+      }
+      if (candidates.length) { teams = candidates; break; }
+    }
+
+    if (!teams.length) {
+      el.innerHTML = '<div class="empty">Standings unavailable</div>';
+      if (badge) badge.textContent = '—';
+      return;
+    }
+
+    teams.sort((a, b) => b.pct - a.pct);
+    if (badge) badge.textContent = `${teams.length} teams`;
+    el.innerHTML = teams.map((t, i) => {
+      const wl = (t.w != null && t.l != null) ? `${t.w}-${t.l}` : '';
+      const pctStr = t.pct === 1 ? '1.000' : t.pct === 0 ? '.000' : t.pct.toFixed(3).replace(/^0/, '');
+      return `<div class="standing-row">
+        <span class="standing-rank">${i + 1}</span>
+        <span class="standing-team">${t.team}</span>
+        ${wl ? `<span class="standing-wl">${wl}</span>` : ''}
+        <span class="standing-pct">${pctStr}</span>
+      </div>`;
+    }).join('');
+  } catch(e) {
+    el.innerHTML = '<div class="empty">Standings unavailable</div>';
+    if (badge) badge.textContent = '—';
+    console.warn('Standings fetch failed:', e);
+  }
 }
 
 // ── ICS PARSER ──
@@ -868,10 +1029,12 @@ async function loadCalendars() {
 function init() {
   if (cfg.city) fetchWeather(cfg.city);
   loadCalendars();
-  // Refresh calendar data every 15 minutes
+  fetchScores();
+  fetchStandings();
   setInterval(loadCalendars, 15 * 60 * 1000);
-  // Refresh weather every 30 minutes
   if (cfg.city) setInterval(() => fetchWeather(cfg.city), 30 * 60 * 1000);
+  setInterval(fetchScores, 60 * 60 * 1000);
+  setInterval(fetchStandings, 60 * 60 * 1000);
 }
 
 // ── BOOT ──
