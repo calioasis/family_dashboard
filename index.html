@@ -711,11 +711,16 @@ async function fetchScores() {
       const away = cells[4]?.textContent?.trim();
       const home = cells[5]?.textContent?.trim();
       const score = cells[6]?.textContent?.trim();
-      if (away && home && score && /\d/.test(score)) games.push({ date, away, home, score });
+      if (away && home && score && /\d/.test(score)) {
+        const [mm, dd, yyyy] = date.split('/');
+        games.push({ date, away, home, score, ts: new Date(+yyyy, +mm-1, +dd) });
+      }
     }
 
+    games.sort((a, b) => b.ts - a.ts);
+
     if (!games.length) {
-      el.innerHTML = '<div class="empty"><span class="empty-icon">⚾</span>No games in the last 2 days</div>';
+      el.innerHTML = '<div class="empty"><span class="empty-icon">⚾</span>No games in the last 4 days</div>';
       if (badge) badge.textContent = 'No recent games';
       return;
     }
