@@ -151,7 +151,19 @@
     overflow: hidden;
   }
 
-  /* ── SCORES ── */
+  /* ── CARD LABEL (replaces card-head for compact cards) ── */
+  .card-label {
+    font-size: 0.62rem;
+    text-transform: uppercase;
+    letter-spacing: 0.09em;
+    color: var(--muted);
+    padding: 7px 24px 4px;
+    flex-shrink: 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  /* ── SCORES / STANDINGS ── */
+  .col-right > .card { flex: 1; min-height: 0; }
   .scores-card { flex: 1; min-height: 0; }
   /* ── STANDINGS ── */
   .standings-card { flex: 1; min-height: 0; }
@@ -505,21 +517,22 @@
 
   <div class="col-right">
     <div class="card scores-card">
-      <div class="card-head">
-        <h2>Scores</h2>
-        <span class="card-badge" id="scoresBadge">—</span>
-      </div>
+      <div class="card-label">Scores</div>
       <div class="scores-scroll" id="scoresList">
         <div class="empty"><span class="empty-icon">⚾</span>Loading…</div>
       </div>
     </div>
 
     <div class="card standings-card">
-      <div class="card-head">
-        <h2>Standings</h2>
-        <span class="card-badge" id="standingsBadge">—</span>
-      </div>
+      <div class="card-label">Majors</div>
       <div class="standings-scroll" id="standingsList">
+        <div class="empty">Loading…</div>
+      </div>
+    </div>
+
+    <div class="card standings-card">
+      <div class="card-label">Minor B</div>
+      <div class="standings-scroll" id="standingsBList">
         <div class="empty">Loading…</div>
       </div>
     </div>
@@ -743,12 +756,50 @@ async function fetchScores() {
 }
 
 // ── STANDINGS ──
+function parseStandingsDoc(doc) {
+  for (const table of doc.querySelectorAll('table')) {
+    const headers = Array.from(table.querySelectorAll('th')).map(th => th.textContent.trim().toUpperCase());
+    const pctCol  = headers.findIndex(h => h === 'PCT' || h === 'WIN%' || h === 'WPCT');
+    const wCol    = headers.findIndex(h => h === 'W' || h === 'WIN' || h === 'WINS');
+    const lCol    = headers.findIndex(h => h === 'L' || h === 'LOSS' || h === 'LOSSES');
+    const teamCol = headers.findIndex(h => h === 'TEAM' || h === 'NAME');
+    if (pctCol < 0) continue;
+    const teams = [];
+    for (const row of table.querySelectorAll('tbody tr')) {
+      const cells = Array.from(row.querySelectorAll('td'));
+      if (cells.length <= pctCol) continue;
+      const pct = parseFloat(cells[pctCol]?.textContent?.trim());
+      if (isNaN(pct)) continue;
+      const team = cells[teamCol >= 0 ? teamCol : 0]?.textContent?.trim();
+      const w = wCol >= 0 ? parseInt(cells[wCol]?.textContent?.trim()) : NaN;
+      const l = lCol >= 0 ? parseInt(cells[lCol]?.textContent?.trim()) : NaN;
+      if (team) teams.push({ team, w: isNaN(w) ? null : w, l: isNaN(l) ? null : l, pct });
+    }
+    if (teams.length) return teams;
+  }
+  return [];
+}
+function renderStandingsTeams(teams, elId) {
+  const el = document.getElementById(elId);
+  if (!el) return;
+  if (!teams.length) { el.innerHTML = '<div class="empty">Unavailable</div>'; return; }
+  teams.sort((a, b) => b.pct - a.pct);
+  el.innerHTML = teams.map((t, i) => {
+    const wl = (t.w != null && t.l != null) ? `${t.w}-${t.l}` : '';
+    const pctStr = t.pct === 1 ? '1.000' : t.pct === 0 ? '.000' : t.pct.toFixed(3).replace(/^0/, '');
+    return `<div class="standing-row">
+      <span class="standing-rank">${i + 1}</span>
+      <span class="standing-team">${t.team}</span>
+      ${wl ? `<span class="standing-wl">${wl}</span>` : ''}
+      <span class="standing-pct">${pctStr}</span>
+    </div>`;
+  }).join('');
+}
+
 async function fetchStandings() {
-  const el = document.getElementById('standingsList');
-  const badge = document.getElementById('standingsBadge');
   const url = 'https://www.ellbaseball.org/Default.aspx?tabid=1343465';
   try {
-    // GET → POST season → POST division (3 steps needed to load standings)
+    // GET → POST season once, then POST each division separately from the same season state
     const initRes = await fetch(CORS + encodeURIComponent(url));
     if (!initRes.ok) throw new Error('GET ' + initRes.status);
     const initDoc = new DOMParser().parseFromString(await initRes.text(), 'text/html');
@@ -759,56 +810,25 @@ async function fetchStandings() {
     fields1['dnn$ctr1417434$ViewStandings$dropDownSeasons'] = '130174336';
     const seasonDoc = await ellPost(url, fields1);
 
-    const fields2 = ellFormFields(seasonDoc);
-    fields2['__EVENTTARGET'] = 'dnn$ctr1417434$ViewStandings$dropDownDivisions';
-    fields2['__EVENTARGUMENT'] = '';
-    fields2['dnn$ctr1417434$ViewStandings$dropDownSeasons'] = '130174336';
-    fields2['dnn$ctr1417434$ViewStandings$dropDownDivisions'] = '131469042'; // Majors
-    const doc = await ellPost(url, fields2);
+    // Fetch Majors and Minor B in parallel from the same season state
+    const [majorsDoc, minorBDoc] = await Promise.all([
+      ellPost(url, { ...ellFormFields(seasonDoc),
+        '__EVENTTARGET': 'dnn$ctr1417434$ViewStandings$dropDownDivisions',
+        '__EVENTARGUMENT': '',
+        'dnn$ctr1417434$ViewStandings$dropDownSeasons': '130174336',
+        'dnn$ctr1417434$ViewStandings$dropDownDivisions': '131469042' }),
+      ellPost(url, { ...ellFormFields(seasonDoc),
+        '__EVENTTARGET': 'dnn$ctr1417434$ViewStandings$dropDownDivisions',
+        '__EVENTARGUMENT': '',
+        'dnn$ctr1417434$ViewStandings$dropDownSeasons': '130174336',
+        'dnn$ctr1417434$ViewStandings$dropDownDivisions': '131469046' }),
+    ]);
 
-    let teams = [];
-    for (const table of doc.querySelectorAll('table')) {
-      const headers = Array.from(table.querySelectorAll('th')).map(th => th.textContent.trim().toUpperCase());
-      const pctCol  = headers.findIndex(h => h === 'PCT' || h === 'WIN%' || h === 'WPCT');
-      const wCol    = headers.findIndex(h => h === 'W' || h === 'WIN' || h === 'WINS');
-      const lCol    = headers.findIndex(h => h === 'L' || h === 'LOSS' || h === 'LOSSES');
-      const teamCol = headers.findIndex(h => h === 'TEAM' || h === 'NAME');
-      if (pctCol < 0) continue;
-      const candidates = [];
-      for (const row of table.querySelectorAll('tbody tr')) {
-        const cells = Array.from(row.querySelectorAll('td'));
-        if (cells.length <= pctCol) continue;
-        const pct = parseFloat(cells[pctCol]?.textContent?.trim());
-        if (isNaN(pct)) continue;
-        const team = cells[teamCol >= 0 ? teamCol : 0]?.textContent?.trim();
-        const w = wCol >= 0 ? parseInt(cells[wCol]?.textContent?.trim()) : NaN;
-        const l = lCol >= 0 ? parseInt(cells[lCol]?.textContent?.trim()) : NaN;
-        if (team) candidates.push({ team, w: isNaN(w) ? null : w, l: isNaN(l) ? null : l, pct });
-      }
-      if (candidates.length) { teams = candidates; break; }
-    }
-
-    if (!teams.length) {
-      el.innerHTML = '<div class="empty">Standings unavailable</div>';
-      if (badge) badge.textContent = '—';
-      return;
-    }
-
-    teams.sort((a, b) => b.pct - a.pct);
-    if (badge) badge.textContent = `${teams.length} teams`;
-    el.innerHTML = teams.map((t, i) => {
-      const wl = (t.w != null && t.l != null) ? `${t.w}-${t.l}` : '';
-      const pctStr = t.pct === 1 ? '1.000' : t.pct === 0 ? '.000' : t.pct.toFixed(3).replace(/^0/, '');
-      return `<div class="standing-row">
-        <span class="standing-rank">${i + 1}</span>
-        <span class="standing-team">${t.team}</span>
-        ${wl ? `<span class="standing-wl">${wl}</span>` : ''}
-        <span class="standing-pct">${pctStr}</span>
-      </div>`;
-    }).join('');
+    renderStandingsTeams(parseStandingsDoc(majorsDoc), 'standingsList');
+    renderStandingsTeams(parseStandingsDoc(minorBDoc), 'standingsBList');
   } catch(e) {
-    el.innerHTML = '<div class="empty">Standings unavailable</div>';
-    if (badge) badge.textContent = '—';
+    document.getElementById('standingsList').innerHTML = '<div class="empty">Unavailable</div>';
+    document.getElementById('standingsBList').innerHTML = '<div class="empty">Unavailable</div>';
     console.warn('Standings fetch failed:', e);
   }
 }
