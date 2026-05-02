@@ -697,7 +697,7 @@ async function fetchScores() {
     const rows = ellScoresRows(doc);
     const todayMidnight = new Date(); todayMidnight.setHours(0, 0, 0, 0);
     const targets = new Set();
-    for (let d = 1; d <= 2; d++) {
+    for (let d = 1; d <= 4; d++) {
       const dt = new Date(todayMidnight); dt.setDate(dt.getDate() - d);
       targets.add(`${String(dt.getMonth()+1).padStart(2,'0')}/${String(dt.getDate()).padStart(2,'0')}/${dt.getFullYear()}`);
     }
@@ -764,18 +764,20 @@ async function fetchStandings() {
     let teams = [];
     for (const table of doc.querySelectorAll('table')) {
       const headers = Array.from(table.querySelectorAll('th')).map(th => th.textContent.trim().toUpperCase());
-      let pctCol = headers.findIndex(h => h === 'PCT' || h === 'WIN%' || h === 'WPCT');
+      const pctCol  = headers.findIndex(h => h === 'PCT' || h === 'WIN%' || h === 'WPCT');
+      const wCol    = headers.findIndex(h => h === 'W' || h === 'WIN' || h === 'WINS');
+      const lCol    = headers.findIndex(h => h === 'L' || h === 'LOSS' || h === 'LOSSES');
+      const teamCol = headers.findIndex(h => h === 'TEAM' || h === 'NAME');
+      if (pctCol < 0) continue;
       const candidates = [];
       for (const row of table.querySelectorAll('tbody tr')) {
         const cells = Array.from(row.querySelectorAll('td'));
-        if (cells.length < 3) continue;
-        if (pctCol < 0) pctCol = cells.findIndex(c => /^[01]\.\d{3}$/.test(c.textContent.trim()));
-        if (pctCol < 0) continue;
+        if (cells.length <= pctCol) continue;
         const pct = parseFloat(cells[pctCol]?.textContent?.trim());
         if (isNaN(pct)) continue;
-        const team = cells[0]?.textContent?.trim();
-        const w = pctCol >= 2 ? parseInt(cells[pctCol-2]?.textContent?.trim()) : NaN;
-        const l = pctCol >= 1 ? parseInt(cells[pctCol-1]?.textContent?.trim()) : NaN;
+        const team = cells[teamCol >= 0 ? teamCol : 0]?.textContent?.trim();
+        const w = wCol >= 0 ? parseInt(cells[wCol]?.textContent?.trim()) : NaN;
+        const l = lCol >= 0 ? parseInt(cells[lCol]?.textContent?.trim()) : NaN;
         if (team) candidates.push({ team, w: isNaN(w) ? null : w, l: isNaN(l) ? null : l, pct });
       }
       if (candidates.length) { teams = candidates; break; }
