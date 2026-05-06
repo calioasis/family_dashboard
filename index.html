@@ -36,7 +36,7 @@
     display: grid;
     grid-template-columns: 1fr 1fr 1fr;
     align-items: center;
-    padding: 20px 48px 0;
+    padding: 14px 48px 0;
     flex-shrink: 0;
   }
   .topbar.marquee-mode {
@@ -49,17 +49,22 @@
     font-weight: 400;
     line-height: 1;
   }
+  .date-time-row {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    margin-top: 4px;
+  }
   .date-block .full-date {
     font-size: 0.78rem;
     color: var(--muted);
-    margin-top: 4px;
     letter-spacing: 0.06em;
     text-transform: uppercase;
   }
+  .date-sep { font-size: 0.78rem; color: var(--border); }
   .date-block .time {
-    font-size: 0.9rem;
+    font-size: 0.82rem;
     color: var(--ink);
-    margin-top: 5px;
     letter-spacing: 0.02em;
   }
 
@@ -481,7 +486,7 @@
     .marquee-wrap { display: none !important; }
     .date-block .weekday { font-size: 1.4rem; }
     .date-block .full-date { font-size: 0.68rem; }
-    .date-block .time { display: none; }
+    .date-block .time, .date-sep { display: none; }
     .wc-temp { font-size: 1.3rem; }
     .wc-icon { font-size: 1.1rem; }
 
@@ -576,8 +581,11 @@
 <div class="topbar">
   <div class="date-block">
     <div class="weekday" id="weekday">—</div>
-    <div class="full-date" id="fullDate">—</div>
-    <div class="time" id="currentTime">—</div>
+    <div class="date-time-row">
+      <span class="full-date" id="fullDate">—</span>
+      <span class="date-sep">·</span>
+      <span class="time" id="currentTime">—</span>
+    </div>
   </div>
   <div class="family-center" id="familyCenter">
     <div class="family-name">Sherin Family</div>
