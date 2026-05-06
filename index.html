@@ -56,6 +56,12 @@
     letter-spacing: 0.06em;
     text-transform: uppercase;
   }
+  .date-block .time {
+    font-size: 0.9rem;
+    color: var(--ink);
+    margin-top: 5px;
+    letter-spacing: 0.02em;
+  }
 
   .family-center {
     display: flex;
@@ -461,6 +467,106 @@
   .upcoming-scroll::-webkit-scrollbar-thumb,
   .scores-scroll::-webkit-scrollbar-thumb,
   .standings-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  /* ── MOBILE TAB BAR (hidden on desktop) ── */
+  .mobile-tabbar { display: none; flex-shrink: 0; }
+
+  @media (max-width: 768px) {
+    /* Compact topbar: date left, weather right */
+    .topbar {
+      grid-template-columns: 1fr 1fr;
+      padding: 12px 16px 10px;
+    }
+    .family-center { display: none; }
+    .marquee-wrap { display: none !important; }
+    .date-block .weekday { font-size: 1.4rem; }
+    .date-block .full-date { font-size: 0.68rem; }
+    .date-block .time { display: none; }
+    .wc-temp { font-size: 1.3rem; }
+    .wc-icon { font-size: 1.1rem; }
+
+    .rule { display: none; }
+    .statusbar { display: none; }
+
+    /* Main: drop the 3-col grid, become a flex column */
+    .main {
+      display: flex;
+      flex-direction: column;
+      padding: 0;
+      gap: 0;
+    }
+
+    /* All panels hidden by default; active panel fills space */
+    .tab-panel {
+      display: none;
+      border-radius: 0;
+      border-left: none;
+      border-right: none;
+      border-bottom: none;
+    }
+    .tab-panel.active {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      min-height: 0;
+      border-top: 1px solid var(--border);
+    }
+
+    /* Baseball panel: stack cards, let the panel itself scroll */
+    .col-right.tab-panel.active {
+      overflow-y: auto;
+      gap: 0;
+      padding: 0;
+    }
+    .col-right > .card {
+      flex: none;
+      border-radius: 0;
+      border: none;
+      border-bottom: 1px solid var(--border);
+    }
+    .col-right > .card:last-child { border-bottom: none; }
+    /* Remove internal scroll on baseball cards — panel scrolls instead */
+    .scores-scroll,
+    .standings-scroll { overflow: visible; flex: none; }
+
+    /* Tighter horizontal padding inside cards on mobile */
+    .card-label { padding-left: 16px; padding-right: 16px; }
+    .standing-row { padding-left: 16px; padding-right: 16px; }
+    .score-item { padding-left: 16px; padding-right: 16px; }
+    .agenda-item { padding-left: 16px; padding-right: 16px; }
+    .card-head { padding-left: 16px; padding-right: 16px; }
+    .upcoming-item { padding-left: 16px; padding-right: 16px; }
+
+    /* Mobile tab bar */
+    .mobile-tabbar {
+      display: flex;
+      border-top: 1px solid var(--border);
+      background: var(--surface);
+      padding-bottom: env(safe-area-inset-bottom, 0px);
+    }
+    .mtab {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      padding: 10px 0;
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--muted);
+      transition: color 0.15s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .mtab.active { color: var(--accent); }
+    .mtab-icon { font-size: 1.2rem; line-height: 1; }
+    .mtab-label {
+      font-size: 0.65rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      font-family: 'Inter', sans-serif;
+    }
+  }
 </style>
 </head>
 <body>
@@ -470,6 +576,7 @@
   <div class="date-block">
     <div class="weekday" id="weekday">—</div>
     <div class="full-date" id="fullDate">—</div>
+    <div class="time" id="currentTime">—</div>
   </div>
   <div class="family-center" id="familyCenter">
     <div class="family-name">Sherin Family</div>
@@ -495,7 +602,7 @@
 <div class="rule"></div>
 
 <div class="main">
-  <div class="card">
+  <div class="card tab-panel active" id="panelToday">
     <div class="card-head">
       <h2 id="agendaHeader">Today</h2>
       <span class="card-badge" id="agendaBadge">—</span>
@@ -505,7 +612,7 @@
     </div>
   </div>
 
-  <div class="card">
+  <div class="card tab-panel" id="panelUpcoming">
     <div class="card-head">
       <h2>Coming up</h2>
       <span class="card-badge">Next 30 days</span>
@@ -515,7 +622,7 @@
     </div>
   </div>
 
-  <div class="col-right">
+  <div class="col-right tab-panel" id="panelBaseball">
     <div class="card scores-card">
       <div class="card-label">Scores</div>
       <div class="scores-scroll" id="scoresList">
@@ -537,6 +644,21 @@
       </div>
     </div>
   </div>
+</div>
+
+<div class="mobile-tabbar" id="mobileTabbar">
+  <button class="mtab active" data-panel="panelToday">
+    <span class="mtab-icon">📅</span>
+    <span class="mtab-label">Today</span>
+  </button>
+  <button class="mtab" data-panel="panelUpcoming">
+    <span class="mtab-icon">🗓</span>
+    <span class="mtab-label">Upcoming</span>
+  </button>
+  <button class="mtab" data-panel="panelBaseball">
+    <span class="mtab-icon">⚾</span>
+    <span class="mtab-label">Baseball</span>
+  </button>
 </div>
 
 <div class="statusbar">
@@ -595,6 +717,10 @@ function tick() {
   const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
   document.getElementById('weekday').textContent = DAYS[now.getDay()];
   document.getElementById('fullDate').textContent = `${MONTHS[now.getMonth()]} ${now.getDate()}, ${now.getFullYear()}`;
+  let h = now.getHours(), m = now.getMinutes();
+  const ap = h >= 12 ? 'pm' : 'am';
+  h = h % 12 || 12;
+  document.getElementById('currentTime').textContent = `${h}:${String(m).padStart(2,'0')} ${ap}`;
 }
 setInterval(tick, 60000);
 tick();
@@ -1095,11 +1221,25 @@ async function loadCalendars() {
 }
 
 
+// ── MOBILE TABS ──
+function initMobileTabs() {
+  document.querySelectorAll('.mtab').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const panelId = btn.dataset.panel;
+      document.querySelectorAll('.mtab').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById(panelId).classList.add('active');
+    });
+  });
+}
+
 function init() {
   if (cfg.city) fetchWeather(cfg.city);
   loadCalendars();
   fetchScores();
   fetchStandings();
+  initMobileTabs();
   setInterval(loadCalendars, 15 * 60 * 1000);
   if (cfg.city) setInterval(() => fetchWeather(cfg.city), 30 * 60 * 1000);
   setInterval(fetchScores, 60 * 60 * 1000);
