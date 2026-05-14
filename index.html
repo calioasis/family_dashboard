@@ -176,42 +176,6 @@
   /* ── SCORES / STANDINGS ── */
   .col-right > .card { flex: 1; min-height: 0; }
   .scores-card { flex: 1; min-height: 0; }
-  /* ── STANDINGS ── */
-  .standings-card { flex: 1; min-height: 0; }
-  .standings-scroll {
-    flex: 1;
-    overflow-y: auto;
-    padding: 4px 0;
-    min-height: 0;
-  }
-  .standing-row {
-    display: flex;
-    align-items: center;
-    padding: 7px 24px;
-    border-bottom: 1px solid var(--border);
-    gap: 8px;
-  }
-  .standing-row:last-child { border-bottom: none; }
-  .standing-rank { font-size: 0.7rem; color: var(--muted); width: 16px; flex-shrink: 0; }
-  .standing-team {
-    flex: 1;
-    font-size: 0.83rem;
-    font-weight: 500;
-    color: var(--ink);
-    min-width: 0;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-  .standing-wl { font-size: 0.72rem; color: var(--muted); width: 32px; text-align: right; flex-shrink: 0; }
-  .standing-pct {
-    font-family: 'Lora', serif;
-    font-size: 0.88rem;
-    color: var(--ink);
-    width: 36px;
-    text-align: right;
-    flex-shrink: 0;
-  }
   .scores-scroll {
     flex: 1;
     overflow-y: auto;
@@ -532,8 +496,7 @@
     }
     .col-right > .card:last-child { border-bottom: none; }
     /* Remove internal scroll on baseball cards — panel scrolls instead */
-    .scores-scroll,
-    .standings-scroll { overflow: visible; flex: none; }
+    .scores-scroll { overflow: visible; flex: none; }
 
     /* Tighter horizontal padding inside cards on mobile */
     .card-label { padding-left: 16px; padding-right: 16px; }
@@ -633,23 +596,16 @@
 
   <div class="col-right tab-panel" id="panelBaseball">
     <div class="card scores-card">
-      <div class="card-label">Scores</div>
+      <div class="card-label">Majors</div>
       <div class="scores-scroll" id="scoresList">
         <div class="empty"><span class="empty-icon">⚾</span>Loading…</div>
       </div>
     </div>
 
-    <div class="card standings-card">
-      <div class="card-label">Majors</div>
-      <div class="standings-scroll" id="standingsList">
-        <div class="empty">Loading…</div>
-      </div>
-    </div>
-
-    <div class="card standings-card">
+    <div class="card scores-card">
       <div class="card-label">Minor B</div>
-      <div class="standings-scroll" id="standingsBList">
-        <div class="empty">Loading…</div>
+      <div class="scores-scroll" id="scoresBList">
+        <div class="empty"><span class="empty-icon">⚾</span>Loading…</div>
       </div>
     </div>
   </div>
@@ -825,146 +781,71 @@ function ellScoresRows(doc) {
 }
 
 // ── LITTLE LEAGUE SCORES ──
-async function fetchScores() {
-  const el = document.getElementById('scoresList');
-  const badge = document.getElementById('scoresBadge');
-  const url = 'https://www.ellbaseball.org/Default.aspx?tabid=1343464';
-  try {
-    // GET page (defaults to Intermediate), then POST to switch to Majors
-    const initRes = await fetch(CORS + encodeURIComponent(url));
-    if (!initRes.ok) throw new Error('GET ' + initRes.status);
-    const initDoc = new DOMParser().parseFromString(await initRes.text(), 'text/html');
-
-    const fields = ellFormFields(initDoc);
-    fields['__EVENTTARGET'] = 'dnn$ctr1417433$ViewScores$dropDownDivisions';
-    fields['__EVENTARGUMENT'] = '';
-    fields['dnn$ctr1417433$ViewScores$dropDownSeasons'] = '130174336';
-    fields['dnn$ctr1417433$ViewScores$dropDownDivisions'] = '131469042'; // Majors
-    const doc = await ellPost(url, fields);
-
-    const rows = ellScoresRows(doc);
-    const todayMidnight = new Date(); todayMidnight.setHours(0, 0, 0, 0);
-    const targets = new Set();
-    for (let d = 1; d <= 4; d++) {
-      const dt = new Date(todayMidnight); dt.setDate(dt.getDate() - d);
-      targets.add(`${String(dt.getMonth()+1).padStart(2,'0')}/${String(dt.getDate()).padStart(2,'0')}/${dt.getFullYear()}`);
-    }
-
-    const games = [];
-    for (const row of rows) {
-      const cells = Array.from(row.querySelectorAll('td'));
-      if (cells.length < 7) continue;
-      const date = cells[1]?.textContent?.trim();
-      if (!targets.has(date)) continue;
-      const away = cells[4]?.textContent?.trim();
-      const home = cells[5]?.textContent?.trim();
-      const score = cells[6]?.textContent?.trim();
-      if (away && home && score && /\d/.test(score)) {
-        const [mm, dd, yyyy] = date.split('/');
-        games.push({ date, away, home, score, ts: new Date(+yyyy, +mm-1, +dd) });
-      }
-    }
-
-    games.sort((a, b) => b.ts - a.ts);
-
-    if (!games.length) {
-      el.innerHTML = '<div class="empty"><span class="empty-icon">⚾</span>No games in the last 4 days</div>';
-      if (badge) badge.textContent = 'No recent games';
-      return;
-    }
-
-    if (badge) badge.textContent = `${games.length} game${games.length !== 1 ? 's' : ''}`;
-    el.innerHTML = games.map(g => {
-      const [mm, dd, yyyy] = g.date.split('/');
-      const diffDays = Math.round((todayMidnight - new Date(+yyyy, +mm - 1, +dd)) / 86400000);
-      const when = diffDays === 1 ? 'Yesterday' : `${diffDays}d ago`;
-      return `<div class="score-item">
-        <div class="score-matchup"><span class="score-team">${g.away}</span><span class="score-vs">vs</span><span class="score-team">${g.home}</span></div>
-        <div class="score-line"><span class="score-result">${g.score}</span><span class="score-when">${when}</span></div>
-      </div>`;
-    }).join('');
-  } catch(e) {
-    el.innerHTML = '<div class="empty"><span class="empty-icon">⚾</span>Scores unavailable</div>';
-    if (badge) badge.textContent = '—';
-    console.warn('Scores fetch failed:', e);
-  }
-}
-
-// ── STANDINGS ──
-function parseStandingsDoc(doc) {
-  for (const table of doc.querySelectorAll('table')) {
-    const headers = Array.from(table.querySelectorAll('th')).map(th => th.textContent.trim().toUpperCase());
-    const pctCol  = headers.findIndex(h => h === 'PCT' || h === 'WIN%' || h === 'WPCT');
-    const wCol    = headers.findIndex(h => h === 'W' || h === 'WIN' || h === 'WINS');
-    const lCol    = headers.findIndex(h => h === 'L' || h === 'LOSS' || h === 'LOSSES');
-    const teamCol = headers.findIndex(h => h === 'TEAM' || h === 'NAME');
-    if (pctCol < 0) continue;
-    const teams = [];
-    for (const row of table.querySelectorAll('tbody tr')) {
-      const cells = Array.from(row.querySelectorAll('td'));
-      if (cells.length <= pctCol) continue;
-      const pct = parseFloat(cells[pctCol]?.textContent?.trim());
-      if (isNaN(pct)) continue;
-      const team = cells[teamCol >= 0 ? teamCol : 0]?.textContent?.trim();
-      const w = wCol >= 0 ? parseInt(cells[wCol]?.textContent?.trim()) : NaN;
-      const l = lCol >= 0 ? parseInt(cells[lCol]?.textContent?.trim()) : NaN;
-      if (team) teams.push({ team, w: isNaN(w) ? null : w, l: isNaN(l) ? null : l, pct });
-    }
-    if (teams.length) return teams;
-  }
-  return [];
-}
-function renderStandingsTeams(teams, elId) {
+function renderScores(doc, elId) {
   const el = document.getElementById(elId);
-  if (!el) return;
-  if (!teams.length) { el.innerHTML = '<div class="empty">Unavailable</div>'; return; }
-  teams.sort((a, b) => b.pct - a.pct);
-  el.innerHTML = teams.map((t, i) => {
-    const wl = (t.w != null && t.l != null) ? `${t.w}-${t.l}` : '';
-    const pctStr = t.pct === 1 ? '1.000' : t.pct === 0 ? '.000' : t.pct.toFixed(3).replace(/^0/, '');
-    return `<div class="standing-row">
-      <span class="standing-rank">${i + 1}</span>
-      <span class="standing-team">${t.team}</span>
-      ${wl ? `<span class="standing-wl">${wl}</span>` : ''}
-      <span class="standing-pct">${pctStr}</span>
+  const rows = ellScoresRows(doc);
+  const todayMidnight = new Date(); todayMidnight.setHours(0, 0, 0, 0);
+  const targets = new Set();
+  for (let d = 1; d <= 4; d++) {
+    const dt = new Date(todayMidnight); dt.setDate(dt.getDate() - d);
+    targets.add(`${String(dt.getMonth()+1).padStart(2,'0')}/${String(dt.getDate()).padStart(2,'0')}/${dt.getFullYear()}`);
+  }
+  const games = [];
+  for (const row of rows) {
+    const cells = Array.from(row.querySelectorAll('td'));
+    if (cells.length < 7) continue;
+    const date = cells[1]?.textContent?.trim();
+    if (!targets.has(date)) continue;
+    const away = cells[4]?.textContent?.trim();
+    const home = cells[5]?.textContent?.trim();
+    const score = cells[6]?.textContent?.trim();
+    if (away && home && score && /\d/.test(score)) {
+      const [mm, dd, yyyy] = date.split('/');
+      games.push({ date, away, home, score, ts: new Date(+yyyy, +mm-1, +dd) });
+    }
+  }
+  games.sort((a, b) => b.ts - a.ts);
+  if (!games.length) {
+    el.innerHTML = '<div class="empty"><span class="empty-icon">⚾</span>No games in the last 4 days</div>';
+    return;
+  }
+  el.innerHTML = games.map(g => {
+    const [mm, dd, yyyy] = g.date.split('/');
+    const diffDays = Math.round((todayMidnight - new Date(+yyyy, +mm - 1, +dd)) / 86400000);
+    const when = diffDays === 1 ? 'Yesterday' : `${diffDays}d ago`;
+    return `<div class="score-item">
+      <div class="score-matchup"><span class="score-team">${g.away}</span><span class="score-vs">vs</span><span class="score-team">${g.home}</span></div>
+      <div class="score-line"><span class="score-result">${g.score}</span><span class="score-when">${when}</span></div>
     </div>`;
   }).join('');
 }
 
-async function fetchStandings() {
-  const url = 'https://www.ellbaseball.org/Default.aspx?tabid=1343465';
+async function fetchScores() {
+  const url = 'https://www.ellbaseball.org/Default.aspx?tabid=1343464';
   try {
-    // GET → POST season once, then POST each division separately from the same season state
     const initRes = await fetch(CORS + encodeURIComponent(url));
     if (!initRes.ok) throw new Error('GET ' + initRes.status);
     const initDoc = new DOMParser().parseFromString(await initRes.text(), 'text/html');
 
-    const fields1 = ellFormFields(initDoc);
-    fields1['__EVENTTARGET'] = 'dnn$ctr1417434$ViewStandings$dropDownSeasons';
-    fields1['__EVENTARGUMENT'] = '';
-    fields1['dnn$ctr1417434$ViewStandings$dropDownSeasons'] = '130174336';
-    const seasonDoc = await ellPost(url, fields1);
-
-    // Fetch Majors and Minor B in parallel from the same season state
     const [majorsDoc, minorBDoc] = await Promise.all([
-      ellPost(url, { ...ellFormFields(seasonDoc),
-        '__EVENTTARGET': 'dnn$ctr1417434$ViewStandings$dropDownDivisions',
+      ellPost(url, { ...ellFormFields(initDoc),
+        '__EVENTTARGET': 'dnn$ctr1417433$ViewScores$dropDownDivisions',
         '__EVENTARGUMENT': '',
-        'dnn$ctr1417434$ViewStandings$dropDownSeasons': '130174336',
-        'dnn$ctr1417434$ViewStandings$dropDownDivisions': '131469042' }),
-      ellPost(url, { ...ellFormFields(seasonDoc),
-        '__EVENTTARGET': 'dnn$ctr1417434$ViewStandings$dropDownDivisions',
+        'dnn$ctr1417433$ViewScores$dropDownSeasons': '130174336',
+        'dnn$ctr1417433$ViewScores$dropDownDivisions': '131469042' }), // Majors
+      ellPost(url, { ...ellFormFields(initDoc),
+        '__EVENTTARGET': 'dnn$ctr1417433$ViewScores$dropDownDivisions',
         '__EVENTARGUMENT': '',
-        'dnn$ctr1417434$ViewStandings$dropDownSeasons': '130174336',
-        'dnn$ctr1417434$ViewStandings$dropDownDivisions': '131469046' }),
+        'dnn$ctr1417433$ViewScores$dropDownSeasons': '130174336',
+        'dnn$ctr1417433$ViewScores$dropDownDivisions': '131469046' }), // Minor B
     ]);
 
-    renderStandingsTeams(parseStandingsDoc(majorsDoc), 'standingsList');
-    renderStandingsTeams(parseStandingsDoc(minorBDoc), 'standingsBList');
+    renderScores(majorsDoc, 'scoresList');
+    renderScores(minorBDoc, 'scoresBList');
   } catch(e) {
-    document.getElementById('standingsList').innerHTML = '<div class="empty">Unavailable</div>';
-    document.getElementById('standingsBList').innerHTML = '<div class="empty">Unavailable</div>';
-    console.warn('Standings fetch failed:', e);
+    document.getElementById('scoresList').innerHTML = '<div class="empty"><span class="empty-icon">⚾</span>Scores unavailable</div>';
+    document.getElementById('scoresBList').innerHTML = '<div class="empty"><span class="empty-icon">⚾</span>Scores unavailable</div>';
+    console.warn('Scores fetch failed:', e);
   }
 }
 
@@ -1247,12 +1128,10 @@ function init() {
   if (cfg.city) fetchWeather(cfg.city);
   loadCalendars();
   fetchScores();
-  fetchStandings();
   initMobileTabs();
   setInterval(loadCalendars, 15 * 60 * 1000);
   if (cfg.city) setInterval(() => fetchWeather(cfg.city), 30 * 60 * 1000);
   setInterval(fetchScores, 60 * 60 * 1000);
-  setInterval(fetchStandings, 60 * 60 * 1000);
 }
 
 // ── BOOT ──
