@@ -153,16 +153,7 @@
     letter-spacing: 0.02em;
   }
 
-  /* ── COL RIGHT ── */
-  .col-right {
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-    min-height: 0;
-    overflow: hidden;
-  }
-
-  /* ── CARD LABEL (replaces card-head for compact cards) ── */
+  /* ── CARD LABEL (compact section label inside a card) ── */
   .card-label {
     font-size: 0.62rem;
     text-transform: uppercase;
@@ -173,37 +164,6 @@
     border-bottom: 1px solid var(--border);
   }
 
-  /* ── SCORES / STANDINGS ── */
-  .col-right > .card { flex: 1; min-height: 0; }
-  .scores-card { flex: 1; min-height: 0; }
-  .scores-scroll {
-    flex: 1;
-    overflow-y: auto;
-    padding: 8px 0;
-    min-height: 0;
-  }
-  .score-item {
-    padding: 10px 24px;
-    border-bottom: 1px solid var(--border);
-  }
-  .score-item:last-child { border-bottom: none; }
-  .score-matchup {
-    font-size: 0.82rem;
-    color: var(--ink);
-    margin-bottom: 3px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-  .score-vs { color: var(--muted); margin: 0 5px; }
-  .score-line { display: flex; align-items: baseline; gap: 8px; }
-  .score-result {
-    font-family: 'Lora', serif;
-    font-size: 1.05rem;
-    color: var(--ink);
-  }
-  .score-when { font-size: 0.7rem; color: var(--muted); }
-
   /* ── RULE ── */
   .rule {
     margin: 16px 48px 16px;
@@ -212,16 +172,20 @@
     flex-shrink: 0;
   }
 
-  /* ── MAIN ── */
+  /* ── MAIN GRID ──
+     Driven by the COLUMNS constant in the script below.
+     .cols-2 = Today + Upcoming only (right panel hidden)
+     .cols-3 = Today + Upcoming + Right panel (populate #panelRight in HTML) */
   .main {
     display: grid;
-    grid-template-columns: 1.1fr 1fr 0.9fr;
     gap: 20px;
     padding: 0 48px 0;
     flex: 1;
     min-height: 0;
     overflow: hidden;
   }
+  .main.cols-2 { grid-template-columns: 1.1fr 1fr; }
+  .main.cols-3 { grid-template-columns: 1.1fr 1fr 0.9fr; }
 
   /* ── CARD ── */
   .card {
@@ -425,17 +389,11 @@
 
   /* scrollbars */
   .agenda-scroll::-webkit-scrollbar,
-  .upcoming-scroll::-webkit-scrollbar,
-  .scores-scroll::-webkit-scrollbar,
-  .standings-scroll::-webkit-scrollbar { width: 3px; }
+  .upcoming-scroll::-webkit-scrollbar { width: 3px; }
   .agenda-scroll::-webkit-scrollbar-track,
-  .upcoming-scroll::-webkit-scrollbar-track,
-  .scores-scroll::-webkit-scrollbar-track,
-  .standings-scroll::-webkit-scrollbar-track { background: transparent; }
+  .upcoming-scroll::-webkit-scrollbar-track { background: transparent; }
   .agenda-scroll::-webkit-scrollbar-thumb,
-  .upcoming-scroll::-webkit-scrollbar-thumb,
-  .scores-scroll::-webkit-scrollbar-thumb,
-  .standings-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  .upcoming-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
 
   /* ── MOBILE TAB BAR (hidden on desktop) ── */
   .mobile-tabbar { display: none; flex-shrink: 0; }
@@ -458,7 +416,7 @@
     .rule { display: none; }
     .statusbar { display: none; }
 
-    /* Main: drop the 3-col grid, become a flex column */
+    /* Main: drop the grid, become a flex column */
     .main {
       display: flex;
       flex-direction: column;
@@ -482,26 +440,8 @@
       border-top: 1px solid var(--border);
     }
 
-    /* Baseball panel: stack cards, let the panel itself scroll */
-    .col-right.tab-panel.active {
-      overflow-y: auto;
-      gap: 0;
-      padding: 0;
-    }
-    .col-right > .card {
-      flex: none;
-      border-radius: 0;
-      border: none;
-      border-bottom: 1px solid var(--border);
-    }
-    .col-right > .card:last-child { border-bottom: none; }
-    /* Remove internal scroll on baseball cards — panel scrolls instead */
-    .scores-scroll { overflow: visible; flex: none; }
-
     /* Tighter horizontal padding inside cards on mobile */
     .card-label { padding-left: 16px; padding-right: 16px; }
-    .standing-row { padding-left: 16px; padding-right: 16px; }
-    .score-item { padding-left: 16px; padding-right: 16px; }
     .agenda-item { padding-left: 16px; padding-right: 16px; }
     .card-head { padding-left: 16px; padding-right: 16px; }
     .upcoming-item { padding-left: 16px; padding-right: 16px; }
@@ -573,7 +513,7 @@
 
 <div class="rule"></div>
 
-<div class="main">
+<div class="main" id="mainGrid">
   <div class="card tab-panel active" id="panelToday">
     <div class="card-head">
       <h2 id="agendaHeader">Today</h2>
@@ -594,21 +534,11 @@
     </div>
   </div>
 
-  <div class="col-right tab-panel" id="panelBaseball">
-    <div class="card scores-card">
-      <div class="card-label">Majors</div>
-      <div class="scores-scroll" id="scoresList">
-        <div class="empty"><span class="empty-icon">⚾</span>Loading…</div>
-      </div>
-    </div>
-
-    <div class="card scores-card">
-      <div class="card-label">Minor B</div>
-      <div class="scores-scroll" id="scoresBList">
-        <div class="empty"><span class="empty-icon">⚾</span>Loading…</div>
-      </div>
-    </div>
-  </div>
+  <!-- RIGHT PANEL — only visible when COLUMNS = 3 (set in script below).
+       To activate: set COLUMNS = 3, then add content here.
+       Can be a single .card or a flex column of multiple .card children (use col-right class).
+       See panelToday / panelUpcoming above for card structure reference. -->
+  <div class="card tab-panel" id="panelRight"></div>
 </div>
 
 <div class="mobile-tabbar" id="mobileTabbar">
@@ -620,9 +550,10 @@
     <span class="mtab-icon">🗓</span>
     <span class="mtab-label">Upcoming</span>
   </button>
-  <button class="mtab" data-panel="panelBaseball">
-    <span class="mtab-icon">⚾</span>
-    <span class="mtab-label">Baseball</span>
+  <!-- Third tab — only shown when COLUMNS = 3. Update icon/label to match your content. -->
+  <button class="mtab" id="mtabRight" data-panel="panelRight" style="display:none">
+    <span class="mtab-icon">📋</span>
+    <span class="mtab-label">More</span>
   </button>
 </div>
 
@@ -638,6 +569,13 @@
 const CORS = 'https://calendar-proxy.jeffrey-sherin.workers.dev/?url=';
 const SUBTITLE = 'Have a great day!';
 const MARQUEE = false; // set to true to replace title/subtitle with scrolling marquee
+
+// ── COLUMN MODE ──
+// 2 = two-column layout: Today + Upcoming. Right panel (#panelRight) is hidden.
+// 3 = three-column layout: Today + Upcoming + Right panel.
+//     When switching to 3: populate #panelRight in the HTML above with content,
+//     and update #mtabRight icon/label for mobile.
+const COLUMNS = 2;
 
 let cfg = null;
 let allEvents = [];
@@ -746,109 +684,6 @@ function wmoDesc(c) {
   return 'Unknown';
 }
 
-// ── ELL HELPERS ──
-function ellFormFields(doc) {
-  const f = {};
-  doc.querySelectorAll('form#Form input[name]').forEach(i => {
-    if (i.type === 'checkbox') { if (i.checked) f[i.name] = i.value || 'on'; }
-    else if (!['submit','button','image','reset'].includes(i.type)) f[i.name] = i.value || '';
-  });
-  doc.querySelectorAll('form#Form select[name]').forEach(s => {
-    const opt = s.querySelector('option[selected]');
-    f[s.name] = opt ? opt.value : (s.options[0]?.value || '');
-  });
-  return f;
-}
-async function ellPost(url, fields) {
-  const body = Object.entries(fields).map(([k,v]) => encodeURIComponent(k)+'='+encodeURIComponent(v||'')).join('&');
-  const res = await fetch(CORS + encodeURIComponent(url), {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body
-  });
-  if (!res.ok) throw new Error('POST ' + res.status);
-  return new DOMParser().parseFromString(await res.text(), 'text/html');
-}
-function ellScoresRows(doc) {
-  for (const tbody of doc.querySelectorAll('table tbody')) {
-    const trs = Array.from(tbody.querySelectorAll('tr'));
-    if (trs.some(r => {
-      const c = r.querySelectorAll('td');
-      return c.length >= 2 && /^\d{1,2}\/\d{1,2}\/\d{4}$/.test(c[1]?.textContent?.trim());
-    })) return trs;
-  }
-  return [];
-}
-
-// ── LITTLE LEAGUE SCORES ──
-function renderScores(doc, elId) {
-  const el = document.getElementById(elId);
-  const rows = ellScoresRows(doc);
-  const todayMidnight = new Date(); todayMidnight.setHours(0, 0, 0, 0);
-  const targets = new Set();
-  for (let d = 1; d <= 4; d++) {
-    const dt = new Date(todayMidnight); dt.setDate(dt.getDate() - d);
-    targets.add(`${String(dt.getMonth()+1).padStart(2,'0')}/${String(dt.getDate()).padStart(2,'0')}/${dt.getFullYear()}`);
-  }
-  const games = [];
-  for (const row of rows) {
-    const cells = Array.from(row.querySelectorAll('td'));
-    if (cells.length < 7) continue;
-    const date = cells[1]?.textContent?.trim();
-    if (!targets.has(date)) continue;
-    const away = cells[4]?.textContent?.trim();
-    const home = cells[5]?.textContent?.trim();
-    const score = cells[6]?.textContent?.trim();
-    if (away && home && score && /\d/.test(score)) {
-      const [mm, dd, yyyy] = date.split('/');
-      games.push({ date, away, home, score, ts: new Date(+yyyy, +mm-1, +dd) });
-    }
-  }
-  games.sort((a, b) => b.ts - a.ts);
-  if (!games.length) {
-    el.innerHTML = '<div class="empty"><span class="empty-icon">⚾</span>No games in the last 4 days</div>';
-    return;
-  }
-  el.innerHTML = games.map(g => {
-    const [mm, dd, yyyy] = g.date.split('/');
-    const diffDays = Math.round((todayMidnight - new Date(+yyyy, +mm - 1, +dd)) / 86400000);
-    const when = diffDays === 1 ? 'Yesterday' : `${diffDays}d ago`;
-    return `<div class="score-item">
-      <div class="score-matchup"><span class="score-team">${g.away}</span><span class="score-vs">vs</span><span class="score-team">${g.home}</span></div>
-      <div class="score-line"><span class="score-result">${g.score}</span><span class="score-when">${when}</span></div>
-    </div>`;
-  }).join('');
-}
-
-async function fetchScores() {
-  const url = 'https://www.ellbaseball.org/Default.aspx?tabid=1343464';
-  try {
-    const initRes = await fetch(CORS + encodeURIComponent(url));
-    if (!initRes.ok) throw new Error('GET ' + initRes.status);
-    const initDoc = new DOMParser().parseFromString(await initRes.text(), 'text/html');
-
-    const [majorsDoc, minorBDoc] = await Promise.all([
-      ellPost(url, { ...ellFormFields(initDoc),
-        '__EVENTTARGET': 'dnn$ctr1417433$ViewScores$dropDownDivisions',
-        '__EVENTARGUMENT': '',
-        'dnn$ctr1417433$ViewScores$dropDownSeasons': '130174336',
-        'dnn$ctr1417433$ViewScores$dropDownDivisions': '131469042' }), // Majors
-      ellPost(url, { ...ellFormFields(initDoc),
-        '__EVENTTARGET': 'dnn$ctr1417433$ViewScores$dropDownDivisions',
-        '__EVENTARGUMENT': '',
-        'dnn$ctr1417433$ViewScores$dropDownSeasons': '130174336',
-        'dnn$ctr1417433$ViewScores$dropDownDivisions': '131469046' }), // Minor B
-    ]);
-
-    renderScores(majorsDoc, 'scoresList');
-    renderScores(minorBDoc, 'scoresBList');
-  } catch(e) {
-    document.getElementById('scoresList').innerHTML = '<div class="empty"><span class="empty-icon">⚾</span>Scores unavailable</div>';
-    document.getElementById('scoresBList').innerHTML = '<div class="empty"><span class="empty-icon">⚾</span>Scores unavailable</div>';
-    console.warn('Scores fetch failed:', e);
-  }
-}
-
 // ── ICS PARSER ──
 function parseICS(text) {
   const evts = [];
@@ -951,7 +786,7 @@ function expandRecurring(evt, winStart, winEnd) {
   return results;
 }
 
-// ── FETCH ──
+// ── FETCH CALENDAR ──
 async function fetchCalendar(url, color) {
   url = url.replace(/^webcal:\/\//i, 'https://');
   try {
@@ -1110,6 +945,16 @@ async function loadCalendars() {
   setStatus('', `Live · ${allEvents.length} events`, `Updated ${now.toLocaleTimeString([], {hour:'numeric',minute:'2-digit'})}`);
 }
 
+// ── APPLY COLUMN MODE ──
+function applyColumnMode() {
+  document.getElementById('mainGrid').classList.add(`cols-${COLUMNS}`);
+  if (COLUMNS < 3) {
+    document.getElementById('panelRight').style.display = 'none';
+    document.getElementById('mtabRight').style.display = 'none';
+  } else {
+    document.getElementById('mtabRight').style.display = '';
+  }
+}
 
 // ── MOBILE TABS ──
 function initMobileTabs() {
@@ -1125,13 +970,12 @@ function initMobileTabs() {
 }
 
 function init() {
+  applyColumnMode();
   if (cfg.city) fetchWeather(cfg.city);
   loadCalendars();
-  fetchScores();
   initMobileTabs();
   setInterval(loadCalendars, 15 * 60 * 1000);
   if (cfg.city) setInterval(() => fetchWeather(cfg.city), 30 * 60 * 1000);
-  setInterval(fetchScores, 60 * 60 * 1000);
 }
 
 // ── BOOT ──
